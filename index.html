@@ -92,6 +92,7 @@
   .section-body{padding:14px;}
   .chart-wrap{position:relative;width:100%;height:220px;}
   .chart-wrap canvas{width:100%!important;height:100%!important;}
+  
   .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   table{width:100%;border-collapse:collapse;font-size:11.5px;}
   thead th{padding:8px 10px;text-align:left;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;transition:color 0.15s;}
@@ -322,7 +323,7 @@
   </main>
 </div>
 
-<!-- Sync Config Modal (Baru ditambahkan) -->
+<!-- Sync Config Modal -->
 <div class="modal-overlay" id="syncConfigModal">
   <div class="modal" style="max-width: 500px;">
     <div class="modal-header">
@@ -490,7 +491,7 @@
   </div>
 </div>
 
-<!-- Import Modal (Sambungan dari yang terpotong) -->
+<!-- Import Modal -->
 <div class="modal-overlay" id="importModal">
   <div class="modal" style="max-width:400px;">
     <div class="modal-header"><h2>Import Data</h2><button class="btn-icon" onclick="document.getElementById('importModal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button></div>
@@ -505,6 +506,15 @@
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
+  
+  // === KONFIGURASI PERMANEN GOOGLE DRIVE ===
+  // Jika Anda tidak ingin repot copy-paste, isi URL dan Key di bawah ini.
+  // Biarkan kosong ('') jika ingin tetap menggunakan menu input di dalam web.
+  // Contoh: const HARDCODED_DRIVE_URL = 'https://script.google.com/macros/s/AKfycb.../exec';
+  const HARDCODED_DRIVE_URL = ''; 
+  const HARDCODED_USER_KEY = '';
+  // =========================================
+
   // App State Default
   let appData = {
     initialBalance: 1000,
@@ -540,7 +550,6 @@
     }
   });
 
-  // UI Helpers
   function showToast(msg, type = 'info') {
     const cont = document.getElementById('toastContainer');
     const t = document.createElement('div');
@@ -566,6 +575,11 @@
       if (data) {
         appData = { ...appData, ...data }; // Merge with defaults
       }
+
+      // TIMPA DENGAN KONFIGURASI PERMANEN JIKA ADA
+      if (HARDCODED_DRIVE_URL) appData.config.DRIVE_SYNC_URL = HARDCODED_DRIVE_URL;
+      if (HARDCODED_USER_KEY) appData.config.USER_KEY = HARDCODED_USER_KEY;
+
       updateSyncStatusUI();
     } catch (e) {
       console.error(e);
@@ -575,6 +589,10 @@
 
   async function saveLocalData(autoSync = true) {
     try {
+      // Pastikan konfigurasi permanen tetap terjaga saat save
+      if (HARDCODED_DRIVE_URL) appData.config.DRIVE_SYNC_URL = HARDCODED_DRIVE_URL;
+      if (HARDCODED_USER_KEY) appData.config.USER_KEY = HARDCODED_USER_KEY;
+
       localStorage.setItem('tj_pro_data', JSON.stringify(appData));
       if (typeof localforage !== 'undefined') await localforage.setItem('tj_pro_data', appData);
       
@@ -586,7 +604,6 @@
     }
   }
 
-  // --- GOOGLE DRIVE SYNC LOGIC ---
   function updateSyncStatusUI(status = 'idle') {
     const dot = document.getElementById('syncDot');
     const txt = document.getElementById('syncStatusText');
@@ -608,7 +625,9 @@
       txt.innerText = "Drive: Gagal / Offline";
     } else {
       dot.className = "dot green";
-      txt.innerText = `Drive: Terhubung (${appData.config.USER_KEY})`;
+      let keyDisplay = appData.config.USER_KEY;
+      if(HARDCODED_USER_KEY) keyDisplay += " (Permanen)";
+      txt.innerText = `Drive: Terhubung (${keyDisplay})`;
     }
   }
 
@@ -632,7 +651,7 @@
       if (result.success) {
         if (result.data) {
           appData = result.data;
-          await saveLocalData(false);
+          await saveLocalData(false); // save LocalData will enforce hardcoded keys
           renderAll();
           if(isManual) showToast("Data berhasil ditarik & diperbarui!", "success");
         } else if (isManual) {
@@ -684,6 +703,14 @@
   function openSyncConfigModal() {
     document.getElementById('cfgDriveUrl').value = appData.config.DRIVE_SYNC_URL || '';
     document.getElementById('cfgDriveKey').value = appData.config.USER_KEY || '';
+    
+    // Beri info jika input di disable karena hardcoded
+    if(HARDCODED_DRIVE_URL || HARDCODED_USER_KEY) {
+       document.getElementById('cfgDriveUrl').disabled = !!HARDCODED_DRIVE_URL;
+       document.getElementById('cfgDriveKey').disabled = !!HARDCODED_USER_KEY;
+       showToast("Konfigurasi di-lock karena menggunakan setting permanen di script.", "info");
+    }
+    
     document.getElementById('syncConfigModal').classList.add('open');
   }
   
@@ -692,8 +719,9 @@
   }
 
   function saveSyncConfig() {
-    const url = document.getElementById('cfgDriveUrl').value.trim();
-    const key = document.getElementById('cfgDriveKey').value.trim();
+    // Jika tidak di-hardcode, ambil dari input
+    const url = HARDCODED_DRIVE_URL ? HARDCODED_DRIVE_URL : document.getElementById('cfgDriveUrl').value.trim();
+    const key = HARDCODED_USER_KEY ? HARDCODED_USER_KEY : document.getElementById('cfgDriveKey').value.trim();
     
     if(!url || !key) {
       showToast("URL dan Key tidak boleh kosong!", "error");
