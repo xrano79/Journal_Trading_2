@@ -34,6 +34,7 @@
   html{scroll-behavior:smooth;}
   body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--fg);min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent;}
   .mono{font-family:'JetBrains Mono',monospace;}
+  
   .ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
   .ambient .glow{position:absolute;border-radius:50%;filter:blur(120px);opacity:0.15;}
   .ambient .g1{width:600px;height:600px;top:-200px;left:-100px;background:#10b981;}
@@ -100,8 +101,7 @@
   tbody tr{border-bottom:1px solid rgba(30,45,61,0.5);transition:background 0.12s;}
   tbody tr:hover{background:rgba(255,255,255,0.02);}
   tbody td{padding:9px 10px;white-space:nowrap;vertical-align:middle;}
-  .note-cell{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg2);cursor:help;}
-  .note-cell:hover{white-space:normal;background:var(--bg2);position:absolute;z-index:10;border:1px solid var(--border);border-radius:4px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,0.5);max-width:250px;}
+  .note-cell{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg2);cursor:help;}
   
   .tag{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:5px;font-size:9.5px;font-weight:700;letter-spacing:0.04em;}
   .tag-buy{background:var(--profit-bg);color:var(--profit);}
@@ -311,6 +311,8 @@
                       <th>Profit/Loss</th>
                       <th>Sesi</th>
                       <th>Metode</th>
+                      <!-- Kolom Catatan ditambahkan di sini -->
+                      <th>Catatan</th>
                       <th>Gambar</th>
                       <th>Aksi</th>
                   </tr>
@@ -510,7 +512,6 @@
   // === KONFIGURASI PERMANEN GOOGLE DRIVE ===
   // Jika Anda tidak ingin repot copy-paste, isi URL dan Key di bawah ini.
   // Biarkan kosong ('') jika ingin tetap menggunakan menu input di dalam web.
-  // Contoh: const HARDCODED_DRIVE_URL = 'https://script.google.com/macros/s/AKfycbz-v0avocjtH8_5qTj7rnCXiAZTnRao1IusGixU9bx3sAB-uJMZdfyLfMTN8nGxN8-X/exec';
   const HARDCODED_DRIVE_URL = 'https://script.google.com/macros/s/AKfycbz-v0avocjtH8_5qTj7rnCXiAZTnRao1IusGixU9bx3sAB-uJMZdfyLfMTN8nGxN8-X/exec'; 
   const HARDCODED_USER_KEY = 'FinalJournal';
   // =========================================
@@ -862,6 +863,7 @@
       const isTrade = t.type === 'buy' || t.type === 'sell';
       const plClass = t.profit > 0 ? 'profit-text' : (t.profit < 0 ? 'loss-text' : '');
       const tDate = new Date(t.date).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'2-digit'});
+      const noteText = t.note ? t.note : '-';
       
       let imgHtml = '-';
       if(t.images && t.images.length > 0) {
@@ -878,6 +880,7 @@
         <td class="mono ${plClass}">$${t.profit.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
         <td>${isTrade ? t.session : '-'}</td>
         <td>${isTrade ? t.method : '-'}</td>
+        <td class="note-cell" title="${noteText.replace(/"/g, '&quot;')}">${noteText}</td>
         <td>${imgHtml}</td>
         <td>
           <button class="btn-icon" style="width:28px;height:28px;font-size:10px;" onclick="editTrade(${t.id})"><i class="fa-solid fa-pen"></i></button>
